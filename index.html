@@ -781,13 +781,29 @@
   loadSettings();
   render();
 
-  // Register service worker
+  // Force service worker update + show version
+  document.getElementById('header').insertAdjacentHTML('beforeend',
+    '<span style="font-size:9px;color:var(--text3);position:absolute;right:52px;top:14px" id="ver">v2</span>');
+
+  // Register service worker with auto-update
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(() => {
+    navigator.serviceWorker.register('sw.js?v=2').then(reg => {
       console.log('SW registered');
-    }).catch(e => {
-      console.log('SW registration skipped (served as file or HTTP)');
-    });
+      // Check for updates
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            document.getElementById('ver').textContent = 'v2 ⬆️';
+            if (confirm('¡Nueva versión disponible! Recarga para actualizar.')) {
+              window.location.reload();
+            }
+          }
+        });
+      });
+      // Force immediate update check
+      reg.update();
+    }).catch(e => console.log('SW skipped'));
   }
 
   // Save settings when changed
